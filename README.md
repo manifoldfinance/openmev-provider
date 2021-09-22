@@ -1,14 +1,34 @@
+<span align="center">
+
 # `@openmev/ethers-provider`
 
-> OpenMEV Web3 Provider
+  [![nodejs](https://github.com/manifoldfinance/openmev-provider/workflows/nodejs/badge.svg)](https://github.com/manifoldfinance/openmev-provider/actions?query=workflow:"nodejs")
+[![GitHub tag](https://img.shields.io/github/tag/manifoldfinance/openmev-provider?include_prereleases=&sort=semver&color=blue)](https://github.com/manifoldfinance/openmev-provider/releases/)
+[![License](https://img.shields.io/badge/License-Apache--2.0-blue)](#license)
+[![issues - openmev-provider](https://img.shields.io/github/issues/manifoldfinance/openmev-provider)](https://github.com/manifoldfinance/openmev-provider/issues)
+[![typedoc - latest](https://img.shields.io/badge/typedoc-latest-informational?logo=typescript&logoColor=white)](https://openmev-provider.netlify.app/)
+
+</span>
+
 
 ## Overview
+
+
+**OpenMEV** provides automated e2e, integration, contract & component (*or service level*) interfaces and testing utilities.
+
+- ⚡ Automated or Bypass RPC Routing
+- 🎈 Lightweight
+- 🛠️ Transaction Mock Server
+- 🔧 Extendable & Customizable
+- 📚 Clear & Comprehensive Documentation
+- 🔗 Component, Contract & E2E testing of RPC APIs
+
 
 This repository contains the `OpenMevBundleProvider` EthersJS provider, an
 additional `Provider` to `ethers.js` to enable high-level access to
 `eth_sendBundle` and `eth_callBundle`, and `eth_sendMegaBundle` RPC endpoints for MEV-Geth enabled Mining Pools.
 
-OpenMEV enabled relays and miners expose at least the following JSON-RPC endpoints:
+OpenMEV interacts with Flashbots-compliant relays and miners. They expose at least the following JSON-RPC endpoints:
 
 `eth_sendBundle`, `eth_callBundle`, `eth_sendMegaBundle`
 
