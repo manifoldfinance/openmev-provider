@@ -1,3 +1,19 @@
+/**
+SPDX-License-Identifier: Apache-2.0
+Copyright 2021 CommodityStream LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 import {
   BlockTag,
   TransactionReceipt,
@@ -11,14 +27,21 @@ import { ConnectionInfo, fetchJson } from '@ethersproject/web';
 // import { BigNumber, ethers, providers, Signer } from 'ethers'
 import { keccak256 } from '@ethersproject/keccak256';
 import * as providers from '@ethersproject/providers';
-import { Provider, BaseProvider } from '@ethersproject/providers';
-import { BigNumber } from '@ethersproject/bignumber';
+import {
+  Provider,
+  BaseProvider,
+  TransactionResponse,
+} from '@ethersproject/providers';
+import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import {
   accessListify,
   computeAddress,
   parse as parseTransaction,
 } from '@ethersproject/transactions';
 import { toUtf8Bytes } from '@ethersproject/strings';
+import { encrypt } from 'eciesjs';
+import { encode } from '@ethersproject/rlp';
+import { parseUnits } from '@ethersproject/units';
 
 export function id(text: string): string {
   return keccak256(toUtf8Bytes(text));
@@ -84,6 +107,12 @@ export interface FlashbotsOptions {
   minTimestamp?: number;
   maxTimestamp?: number;
   revertingTxHashes?: Array<string>;
+}
+
+export interface OpenMevBundle {
+  signedBundledTransactions: Array<string>;
+  blockTarget: number;
+  options?: FlashbotsOptions;
 }
 
 export interface TransactionAccountNonce {
@@ -185,7 +214,7 @@ type RpcParams = Array<string[] | string | number | Record<string, unknown>>;
 
 const TIMEOUT_MS = 5 * 60 * 1000;
 
-export class FlashbotsBundleProvider extends providers.JsonRpcProvider {
+export class OpenMevBundleProvider extends providers.JsonRpcProvider {
   private genericProvider: BaseProvider;
   private authSigner: Signer;
   private connectionInfo: ConnectionInfo;
@@ -212,7 +241,7 @@ export class FlashbotsBundleProvider extends providers.JsonRpcProvider {
     authSigner: Signer,
     connectionInfoOrUrl?: ConnectionInfo | string,
     network?: Networkish,
-  ): Promise<FlashbotsBundleProvider> {
+  ): Promise<OpenMevBundleProvider> {
     const connectionInfo: ConnectionInfo =
       typeof connectionInfoOrUrl === 'string' ||
       typeof connectionInfoOrUrl === 'undefined'
@@ -223,7 +252,7 @@ export class FlashbotsBundleProvider extends providers.JsonRpcProvider {
             ...connectionInfoOrUrl,
           };
     if (connectionInfo.headers === undefined) connectionInfo.headers = {};
-    connectionInfo.throttleCallback = FlashbotsBundleProvider.throttleCallback;
+    connectionInfo.throttleCallback = OpenMevBundleProvider.throttleCallback;
     const networkish: Networkish = {
       chainId: 0,
       name: '',
@@ -241,7 +270,7 @@ export class FlashbotsBundleProvider extends providers.JsonRpcProvider {
       networkish.chainId = (await genericProvider.getNetwork()).chainId;
     }
 
-    return new FlashbotsBundleProvider(
+    return new OpenMevBundleProvider(
       genericProvider,
       authSigner,
       connectionInfo,
@@ -567,6 +596,135 @@ export class FlashbotsBundleProvider extends providers.JsonRpcProvider {
     };
   }
 
+  /**
+   *  @method sendCarrierTransaction
+   *  @summary Method to send a carrier tx into the public mempool
+   *
+   * @param bundle  OpenMevBundle with AT LEAST signed bundled transactions in `signedBundledTransactions` field obtainedf rom {@link signBundle} method, and `blockTarget`.
+   * @param validatorPublicKey; The public key of the validator that will be able to decrypt the bundle and include it into the bundle pool.
+   * @param signer  Signer who will sign the carrier transaction.
+   * @param carrierTx TransactionRequest whose data field will carry the encrypted bundle : MAY be an incomplete
+   *  object which will be populated with default values.
+   *
+   * @return {Promise<TransactionResponse>} Promise containing the response for the carrier tx
+   * @since v0.6.0
+   *
+   */
+
+  public async sendCarrierTransaction(
+    bundle: OpenMevBundle,
+    validatorPublicKey: string,
+    signer: Signer,
+    carrierTx: TransactionRequest,
+  ): Promise<TransactionResponse> {
+    // @note RLP-serialize the given bundle */
+    const serializedBundle = this.rlpSerializeBundle(bundle);
+
+    // @note Encrypt the encoded bundle with the passed validator pub_key */
+    const encryptedBundle = encrypt(
+      validatorPublicKey,
+      Buffer.from(serializedBundle),
+    );
+    // @note Populate carrier_tx.data as : carrier_tx.data = MEV_Prefix | validator pub_key | Encrypt(validator pub_key, serialized bundle) */
+    const mevPrefix = `0123`; // @TODO placeholder value
+
+    let payload = `0x`;
+    payload += mevPrefix;
+    payload += validatorPublicKey;
+    payload += encryptedBundle.toString('hex');
+
+    carrierTx.data = payload;
+
+    /**
+     * @dev Check if carrier_tx has minimum params, populate with defaults if not */
+    /**  
+     The following statement is intended to be used in order to support any type of incomplete TransactionRequest
+     received, populating it with default values if any one is missing
+    */
+    await this.populateCarrierTransaction(carrierTx, signer);
+
+    // @dev Sign the transaction received as param with passed signer
+    const signedTx = await signer.signTransaction(carrierTx);
+
+    // @dev Propagate carrier_tx into the public mempool and return Promise<TransactionResponse> for the carrier_tx
+    return this.genericProvider.sendTransaction(signedTx);
+  }
+
+  /**
+   * @method rlpSerializeBundle
+   * @summary A private method to encode a OpenMevBundle following the RLP serialization standard.
+   * @param bundle; the OpenMevBundle instance to be serialized.
+   * @returns string; the RLP encoded bundle.
+   * @typedef string
+   * @private
+   * @since v0.6.0
+   */
+  private rlpSerializeBundle(bundle: OpenMevBundle): string {
+    if (
+      bundle.signedBundledTransactions === undefined ||
+      bundle.signedBundledTransactions.length === 0
+    )
+      throw Error('Bundle has no transactions');
+    if (bundle.options === undefined) bundle.options = {};
+
+    const fields = [
+      bundle.signedBundledTransactions,
+      this.formatNumber(bundle.blockTarget || 0),
+      this.formatNumber(bundle.options.minTimestamp || 0),
+      this.formatNumber(bundle.options.maxTimestamp || 0),
+      bundle.options.revertingTxHashes || [],
+    ];
+    return encode(fields);
+  }
+
+  private formatNumber(num: number): string {
+    const hexNum = num.toString(16);
+    return hexNum.length % 2 === 0 ? `0x${hexNum}` : `0x0${hexNum}`;
+  }
+
+  /**
+   * A private method to populate {@param carrier}'s missing fields with default values
+   * @param carrier an instance of TransactionRequest which will be the tx containing the full payload in its data field
+   * @param signer the signer Object which will send the carrier tx
+   * @private
+   * @since v0.6.0
+   */
+  private async populateCarrierTransaction(
+    carrier: TransactionRequest,
+    signer: Signer,
+  ) {
+    if (!('to' in carrier)) throw Error('carrier.to field is missing');
+
+    if (carrier.gasPrice != null) {
+      const gasPrice = BigNumber.from(carrier.gasPrice);
+      const maxFeePerGas = BigNumber.from(carrier.maxFeePerGas || 0);
+      if (!gasPrice.eq(maxFeePerGas)) {
+        throw Error('carrier tx EIP-1559 mismatch: gasPrice != maxFeePerGas');
+      }
+    }
+    const latestBlock = await this.genericProvider.getBlock('latest');
+    const blocksInFuture = 5;
+    const maxBaseFeeInFuture = OpenMevBundleProvider.getMaxBaseFeeInFutureBlock(
+      <BigNumber>latestBlock.baseFeePerGas,
+      blocksInFuture,
+    );
+
+    carrier.type = 2;
+    carrier.chainId = carrier.chainId || 1;
+    carrier.nonce =
+      carrier.nonce ||
+      (await this.genericProvider.getTransactionCount(signer.getAddress()));
+    carrier.maxPriorityFeePerGas =
+      carrier.maxPriorityFeePerGas || parseUnits('1.5', 'gwei');
+    carrier.maxFeePerGas =
+      carrier.maxFeePerGas ||
+      maxBaseFeeInFuture.add(carrier.maxPriorityFeePerGas);
+    carrier.gasLimit =
+      carrier.gasLimit || (await this.genericProvider.estimateGas(carrier));
+    carrier.value = carrier.value || 0;
+    carrier.accessList = carrier.accessList || [];
+  }
+
   private async request(request: string) {
     const connectionInfo = { ...this.connectionInfo };
     connectionInfo.headers = {
@@ -588,10 +746,20 @@ export class FlashbotsBundleProvider extends providers.JsonRpcProvider {
     );
   }
 
+  /**
+   *
+   * @param prepareBundleRequest
+   * @param {eth_callBundle, eth_sendBundle, eth_sendMegaBundle }
+   * @returns {method, params, id, jsonrpc}
+   * @since v0.5.0
+   *  - eth_sendMegaBundle, v0.6.0
+   */
+
   private prepareBundleRequest(
     method:
       | 'eth_callBundle'
       | 'eth_sendBundle'
+      | 'eth_sendMegaBundle'
       | 'flashbots_getUserStats'
       | 'flashbots_getBundleStats',
     params: RpcParams,
