@@ -1,12 +1,16 @@
-# @OpenMev/ethers-provider
+# `@openmev/ethers-provider`
+
+> OpenMEV Web3 Provider
+
+## Overview
 
 This repository contains the `OpenMevBundleProvider` EthersJS provider, an
 additional `Provider` to `ethers.js` to enable high-level access to
-`eth_sendBundle` and `eth_callBundle` RPC endpoint.
+`eth_sendBundle` and `eth_callBundle`, and `eth_sendMegaBundle` RPC endpoints for MEV-Geth enabled Mining Pools.
 
-OpenMEV enabled relays and miners expose two new JSON-RPC endpoints:
+OpenMEV enabled relays and miners expose at least the following JSON-RPC endpoints:
 
-`eth_sendBundle` and `eth_callBundle`
+`eth_sendBundle`, `eth_callBundle`, `eth_sendMegaBundle`
 
 Since these are non-standard endpoints, ethers.js and other libraries do not
 natively support these requests (like `getTransactionCount`). In order to
