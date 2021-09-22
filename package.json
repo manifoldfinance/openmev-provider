@@ -4,6 +4,9 @@
   "description": "OpenMEV Web3 Provider for EthersJS, Includes multiple RPC Providers for Private RPC Transactions",
   "main": "build/index.js",
   "types": "build/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/openmev/ethers-provider.git"
