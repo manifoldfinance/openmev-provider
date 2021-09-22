@@ -1,0 +1,6 @@
+SPDXVersion: SPDX-2.0
+Creator: CommodityStream LLC
+PackageName: @openmev/ethers-provider
+PackageOriginator: CommodityStream LLC
+PackageHomePage: https://github.com/manifoldfinance/openmev-provider
+PackageLicenseDeclared: Apache-2.0
