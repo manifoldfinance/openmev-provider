@@ -1,0 +1,14 @@
+.DS_Store
+node_modules
+.idea/
+.vscode
+build/
+dist/
+*.log
+coverage/
+.coverage/
+.nyc*
+*.tgz
+*.tar.gz
+.env
+*.env

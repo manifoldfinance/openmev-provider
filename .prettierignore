@@ -1,0 +1,9 @@
+build/
+dist/
+*.min.js
+*.css
+*.html
+*.scss
+*.svg
+output/
+
