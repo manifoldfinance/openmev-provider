@@ -4,7 +4,6 @@
  * @license Apache-2.0
 */
 
-
 import {
   BlockTag,
   TransactionReceipt,
@@ -38,7 +37,7 @@ export function id(text: string): string {
   return keccak256(toUtf8Bytes(text));
 }
 
-export const DEFAULT_openmev_ENDPOINT = 'https://relay.flashbots.net';
+export const DEFAULT_FLASHBOTS_ENDPOINT = 'https://relay.flashbots.net';
 export const DEFAULT_ETHERMINE_ENDPOINT = 'https://mev-relay.ethermine.org/';
 export const DEFAULT_OPENMEV_ENDPOINT_PROVIDER = 'https://api.sushirelay.com/v1';
 export const DEFAULT_SUSHIRELAY_ENDPOINT_PROVIDER = 'https://api.sushirelay.com/v1';
@@ -78,22 +77,22 @@ export enum BundleSourceId {
   UNREC,
 }
 
-export enum FlashbotsBundleResolution {
+export enum OpenMevBundleResolution {
   BundleIncluded,
   BlockPassedWithoutInclusion,
   AccountNonceTooHigh,
 }
 
-export interface FlashbotsBundleRawTransaction {
+export interface OpenMevBundleRawTransaction {
   signedTransaction: string;
 }
 
-export interface FlashbotsBundleTransaction {
+export interface OpenMevBundleTransaction {
   transaction: TransactionRequest;
   signer: Signer;
 }
 
-export interface FlashbotsOptions {
+export interface OpenMevOptions {
   minTimestamp?: number;
   maxTimestamp?: number;
   revertingTxHashes?: Array<string>;
@@ -102,7 +101,7 @@ export interface FlashbotsOptions {
 export interface OpenMevBundle {
   signedBundledTransactions: Array<string>;
   blockTarget: number;
-  options?: FlashbotsOptions;
+  options?: OpenMevOptions;
 }
 
 export interface TransactionAccountNonce {
@@ -112,9 +111,9 @@ export interface TransactionAccountNonce {
   nonce: number;
 }
 
-export interface FlashbotsTransactionResponse {
+export interface OpenMevTransactionResponse {
   bundleTransactions: Array<TransactionAccountNonce>;
-  wait: () => Promise<FlashbotsBundleResolution>;
+  wait: () => Promise<OpenMevBundleResolution>;
   simulate: () => Promise<SimulationResponse>;
   receipts: () => Promise<Array<TransactionReceipt>>;
 }
@@ -155,8 +154,8 @@ export interface SimulationResponseSuccess {
 
 export type SimulationResponse = SimulationResponseSuccess | RelayResponseError;
 
-export type FlashbotsTransaction =
-  | FlashbotsTransactionResponse
+export type OpenMevTransaction =
+  | OpenMevTransactionResponse
   | RelayResponseError;
 
 export interface GetUserStatsResponseSuccess {
@@ -282,8 +281,8 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
   public async sendRawBundle(
     signedBundledTransactions: Array<string>,
     targetBlockNumber: number,
-    opts?: FlashbotsOptions,
-  ): Promise<FlashbotsTransaction> {
+    opts?: OpenMevOptions,
+  ): Promise<OpenMevTransaction> {
     const params = {
       txs: signedBundledTransactions,
       blockNumber: `0x${targetBlockNumber.toString(16)}`,
@@ -333,18 +332,18 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
 
   public async sendBundle(
     bundledTransactions: Array<
-      FlashbotsBundleTransaction | FlashbotsBundleRawTransaction
+      OpenMevBundleTransaction | OpenMevBundleRawTransaction
     >,
     targetBlockNumber: number,
-    opts?: FlashbotsOptions,
-  ): Promise<FlashbotsTransaction> {
+    opts?: OpenMevOptions,
+  ): Promise<OpenMevTransaction> {
     const signedTransactions = await this.signBundle(bundledTransactions);
     return this.sendRawBundle(signedTransactions, targetBlockNumber, opts);
   }
 
   public async signBundle(
     bundledTransactions: Array<
-      FlashbotsBundleTransaction | FlashbotsBundleRawTransaction
+      OpenMevBundleTransaction | OpenMevBundleRawTransaction
     >,
   ): Promise<Array<string>> {
     const nonces: { [address: string]: BigNumber } = {};
@@ -395,7 +394,7 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
     targetBlockNumber: number,
     timeout: number,
   ) {
-    return new Promise<FlashbotsBundleResolution>((resolve, reject) => {
+    return new Promise<OpenMevBundleResolution>((resolve, reject) => {
       let timer: NodeJS.Timer | null = null;
       let done = false;
 
@@ -427,7 +426,7 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
           if (allNoncesValid) return;
           // target block not yet reached, but nonce has become invalid
 
-          resolve(FlashbotsBundleResolution.AccountNonceTooHigh);
+          resolve(OpenMevBundleResolution.AccountNonceTooHigh);
         } else {
           const block = await this.genericProvider.getBlock(targetBlockNumber);
           // check bundle against block:
@@ -440,8 +439,8 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
           );
           resolve(
             bundleIncluded
-              ? FlashbotsBundleResolution.BundleIncluded
-              : FlashbotsBundleResolution.BlockPassedWithoutInclusion,
+              ? OpenMevBundleResolution.BundleIncluded
+              : OpenMevBundleResolution.BlockPassedWithoutInclusion,
           );
         }
 
@@ -718,13 +717,13 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
   /**
    * 
    * @param connectionInfo 
-   * @returns {X-Flashbots-Signature} 
+   * @returns {X-OpenMev-Signature} 
    * @summary OpenMEV currently does not utilize proprietary header information, so we just leave the flashbots implementation as is
    */
   private async request(request: string) {
     const connectionInfo = { ...this.connectionInfo };
     connectionInfo.headers = {
-      'X-Flashbots-Signature': `${await this.authSigner.getAddress()}:${await this.authSigner.signMessage(
+      'X-OpenMev-Signature': `${await this.authSigner.getAddress()}:${await this.authSigner.signMessage(
         id(request),
       )}`,
       ...this.connectionInfo.headers,
