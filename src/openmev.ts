@@ -1,19 +1,10 @@
 /**
-SPDX-License-Identifier: Apache-2.0
-Copyright 2021 CommodityStream LLC
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+ * @package openmev/ethers-provider
+ * @version 0.3.0
+ * @license Apache-2.0
 */
+
+
 import {
   BlockTag,
   TransactionReceipt,
@@ -47,12 +38,11 @@ export function id(text: string): string {
   return keccak256(toUtf8Bytes(text));
 }
 
-export const DEFAULT_FLASHBOTS_ENDPOINT = 'https://relay.flashbots.net';
+export const DEFAULT_openmev_ENDPOINT = 'https://relay.flashbots.net';
 export const DEFAULT_ETHERMINE_ENDPOINT = 'https://mev-relay.ethermine.org/';
-export const DEFAULT_TAICHI_ENDPOINT =
-  'https://api-us.taichi.network:10001/rpc/private';
-export const DEFAULT_OPENMEV_ENDPOINT_PROVIDER =
-  'https://api.openmev.net:10001/v1/public/provider';
+export const DEFAULT_OPENMEV_ENDPOINT_PROVIDER = 'https://api.sushirelay.com/v1';
+export const DEFAULT_SUSHIRELAY_ENDPOINT_PROVIDER = 'https://api.sushirelay.com/v1';
+
 
 export enum SystemConfigId {
   CONFIG_MINER_RELAY = 0,
@@ -495,7 +485,7 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
 
     const params = [evmBlockNumber];
     const request = JSON.stringify(
-      this.prepareBundleRequest('flashbots_getUserStats', params),
+      this.prepareBundleRequest('openmev_getUserStats', params),
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -518,7 +508,7 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
 
     const params = [{ bundleHash, blockNumber: evmBlockNumber }];
     const request = JSON.stringify(
-      this.prepareBundleRequest('flashbots_getBundleStats', params),
+      this.prepareBundleRequest('openmev_getBundleStats', params),
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -725,6 +715,12 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
     carrier.accessList = carrier.accessList || [];
   }
 
+  /**
+   * 
+   * @param connectionInfo 
+   * @returns {X-Flashbots-Signature} 
+   * @summary OpenMEV currently does not utilize proprietary header information, so we just leave the flashbots implementation as is
+   */
   private async request(request: string) {
     const connectionInfo = { ...this.connectionInfo };
     connectionInfo.headers = {
@@ -760,8 +756,8 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
       | 'eth_callBundle'
       | 'eth_sendBundle'
       | 'eth_sendMegaBundle'
-      | 'flashbots_getUserStats'
-      | 'flashbots_getBundleStats',
+      | 'openmev_getUserStats'
+      | 'openmev_getBundleStats',
     params: RpcParams,
   ) {
     return {
