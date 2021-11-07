@@ -2,7 +2,7 @@
  * @package openmev/ethers-provider
  * @version 0.3.0
  * @license Apache-2.0
-*/
+ */
 
 import {
   BlockTag,
@@ -39,9 +39,10 @@ export function id(text: string): string {
 
 export const DEFAULT_FLASHBOTS_ENDPOINT = 'https://relay.flashbots.net';
 export const DEFAULT_ETHERMINE_ENDPOINT = 'https://mev-relay.ethermine.org/';
-export const DEFAULT_OPENMEV_ENDPOINT_PROVIDER = 'https://api.sushirelay.com/v1';
-export const DEFAULT_SUSHIRELAY_ENDPOINT_PROVIDER = 'https://api.sushirelay.com/v1';
-
+export const DEFAULT_OPENMEV_ENDPOINT_PROVIDER =
+  'https://api.sushirelay.com/v1';
+export const DEFAULT_SUSHIRELAY_ENDPOINT_PROVIDER =
+  'https://api.sushirelay.com/v1';
 
 export enum SystemConfigId {
   CONFIG_MINER_RELAY = 0,
@@ -715,9 +716,9 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
   }
 
   /**
-   * 
-   * @param connectionInfo 
-   * @returns {X-OpenMev-Signature} 
+   *
+   * @param connectionInfo
+   * @returns {X-OpenMev-Signature}
    * @summary OpenMEV currently does not utilize proprietary header information, so we just leave the flashbots implementation as is
    */
   private async request(request: string) {
