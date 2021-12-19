@@ -41,12 +41,12 @@ export function id(text: string): string {
 
 export const DEFAULT_FLASHBOTS_RELAY_ENDPOINT = 'https://relay.flashbots.net';
 export const DEFAULT_FLASHBOTS_RPC_ENDPOINT = 'https://rpc.flashbots.net';
-export const DEFAULT_FLASHBOTS_ENDPOINT = DEFAULT_FLASHBOTS_RELAY_ENDPOINT
+export const DEFAULT_FLASHBOTS_ENDPOINT = DEFAULT_FLASHBOTS_RELAY_ENDPOINT;
 export const DEFAULT_ETHERMINE_ENDPOINT = 'https://mev-relay.ethermine.org/';
 export const DEFAULT_EDENNETWORK_ENDPOINT = 'https://api.edennetwork.io/v1/rpc';
 export const DEFAULT_OPENMEV_ENDPOINT = 'https://mainnet.eth.openmev.org/v1';
 export const DEFAULT_SUSHIRELAY_ENDPOINT = 'https://api.sushirelay.com/v1';
-
+export const DEFAULT_OPENMEV_ENDPOINT_PROVIDER = DEFAULT_SUSHIRELAY_ENDPOINT;
 export enum SystemConfigId {
   CONFIG_MINER_RELAY = 0,
   UNRECOGNIZED = -1,

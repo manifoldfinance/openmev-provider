@@ -9,12 +9,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/openmev/ethers-provider.git"
+    "url": "https://github.com/manifoldfinance/ethers-provider.git"
   },
   "scripts": {
     "build": "npx tsc -b",
-    "clean": "rm -rf dist/",
-    "prepare": "npm run clean && npm run build",
+    "format": "npx prettier --config .prettierrc.json --write src/",
+    "debug": "NODE_ENV=test npx jest -u",
     "lint": "npx eslint src --fix"
   },
   "author": "SEE CONTRIBUTORS",
