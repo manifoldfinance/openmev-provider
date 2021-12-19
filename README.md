@@ -276,13 +276,15 @@ solely by your signing address) and any bundle previously submitted.
   single bundle submission, including detailed timestamps for the various phases
   a bundle goes before reaching miners.
 
-## OpenMEV on Goerli
+## Testnetwork Example: Goerli
 
-To test OpenMEV before going to mainnet, you can use the Goerli OpenMev relay,
-which works in conjunction with a OpenMEV-enabled Goerli validator. OpenMEV on
+> Note that OpenMEV does not operate on Goerli, this is via flashbots 
+
+To test OpenMEV before going to mainnet, you can use the Goerli Flashbots relay,
+which works in conjunction with a OpenMEV-enabled Goerli validator. Running a compatible OpenMEV client on
 Goerli requires two simple changes:
 
-1. Ensure your genericProvider passed in to the `OpenMevBundleProvider`
+1. Ensure your genericProvider passed in to the `OpenMevBundleProvider` / `FlashbotsBundleProvider`
    constructor is connected to Goerli (gas estimates and nonce requests need to
    correspond to the correct chain):
 
@@ -291,13 +293,17 @@ import { providers } from 'ethers';
 const provider = providers.getDefaultProvider('goerli');
 ```
 
-2. Set the relay endpoint to `https://testnet.OpenMev.net/`
+2. Set the relay endpoint to `https://testnet.flashbots.net/`
 
 ```ts
 const OpenMevProvider = await OpenMevBundleProvider.create(
   provider,
   authSigner,
-  'https://testnet.OpenMev.net/',
+  'https://testnet.flashbots.net/',
   'goerli',
 );
 ```
+
+## License
+
+Apache-2.0
