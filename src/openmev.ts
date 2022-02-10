@@ -1,6 +1,6 @@
 /**
  * @package @openmev/ethers-provider
- * @version 1.2.0
+ * @version 1.3.1
  * @since 2021.12
  * @license Apache-2.0
  * @see {@link https://docs.openmev.org}
@@ -44,7 +44,7 @@ export const DEFAULT_FLASHBOTS_RPC_ENDPOINT = 'https://rpc.flashbots.net';
 export const DEFAULT_FLASHBOTS_ENDPOINT = DEFAULT_FLASHBOTS_RELAY_ENDPOINT;
 export const DEFAULT_ETHERMINE_ENDPOINT = 'https://mev-relay.ethermine.org/';
 export const DEFAULT_EDENNETWORK_ENDPOINT = 'https://api.edennetwork.io/v1/rpc';
-export const DEFAULT_OPENMEV_ENDPOINT = 'https://mainnet.eth.openmev.org/v1';
+//export const DEFAULT_OPENMEV_ENDPOINT = 'https://mainnet.eth.openmev.org/v1';
 export const DEFAULT_SUSHIRELAY_ENDPOINT = 'https://api.sushirelay.com/v1';
 export const DEFAULT_OPENMEV_ENDPOINT_PROVIDER = DEFAULT_SUSHIRELAY_ENDPOINT;
 export enum SystemConfigId {
@@ -488,7 +488,7 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
 
     const params = [evmBlockNumber];
     const request = JSON.stringify(
-      this.prepareBundleRequest('openmev_getUserStats', params),
+      this.prepareBundleRequest('flashbots_getUserStats', params),
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -511,7 +511,7 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
 
     const params = [{ bundleHash, blockNumber: evmBlockNumber }];
     const request = JSON.stringify(
-      this.prepareBundleRequest('openmev_getBundleStats', params),
+      this.prepareBundleRequest('flashbots_getBundleStats', params),
     );
     const response = await this.request(request);
     if (response.error !== undefined && response.error !== null) {
@@ -723,6 +723,7 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
    * @param connectionInfo
    * @returns {X-OpenMev-Signature}
    * @summary OpenMEV currently does not utilize proprietary header information, so we just leave the flashbots implementation as is
+    * manifold_sendTransaction  
    */
   private async request(request: string) {
     const connectionInfo = { ...this.connectionInfo };
@@ -759,8 +760,9 @@ export class OpenMevBundleProvider extends providers.JsonRpcProvider {
       | 'eth_callBundle'
       | 'eth_sendBundle'
       | 'eth_sendMegaBundle'
-      | 'openmev_getUserStats'
-      | 'openmev_getBundleStats',
+      | 'manifold_sendTransaction'
+//      | 'openmev_getUserStats'
+//      | 'openmev_getBundleStats',
     params: RpcParams,
   ) {
     return {
